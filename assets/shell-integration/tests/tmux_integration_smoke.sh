@@ -3,6 +3,7 @@
 set -euo pipefail
 
 TMUX_SOURCE_LINE='source-file "$HOME/.config/kaku/tmux/kaku.tmux.conf" # Kaku tmux Integration'
+TMUX_ALLOW_PASSTHROUGH_LINE='set -g allow-passthrough on'
 
 normalize_kaku_tmux_source_line_file() {
   local input_file="$1"
@@ -58,6 +59,18 @@ assert_file_eq() {
   fi
 }
 
+assert_contains() {
+  local needle="$1"
+  local haystack_file="$2"
+  local label="$3"
+  if ! grep -Fqx "$needle" "$haystack_file"; then
+    echo "Missing line: $needle" >&2
+    echo "File contents:" >&2
+    cat "$haystack_file" >&2
+    fail "$label"
+  fi
+}
+
 run_normalize() {
   local input_text="$1"
   local expected_status="$2"
@@ -99,5 +112,15 @@ run_normalize \
   3 \
   $'set -g status on\n# no kaku integration here\n' \
   "non matching tmux config remains unchanged"
+
+assert_contains \
+  "$TMUX_ALLOW_PASSTHROUGH_LINE" \
+  assets/shell-integration/setup_zsh.sh \
+  "zsh tmux integration enables passthrough"
+
+assert_contains \
+  "$TMUX_ALLOW_PASSTHROUGH_LINE" \
+  assets/shell-integration/setup_fish.sh \
+  "fish tmux integration enables passthrough"
 
 echo "tmux integration smoke tests passed"

@@ -59,6 +59,17 @@ enabled = false
 
 Run `kaku ai`, select "Custom" from the Provider dropdown, and enter your base URL and API key manually. The URL must be OpenAI-compatible (`/v1/chat/completions`).
 
+## Kaku Assistant doesn't work inside tmux.
+
+Shell AI inside tmux depends on Kaku's managed tmux integration so `SetUserVar` events can pass through to Kaku. Re-run:
+
+```bash
+kaku init --update-only
+tmux source-file ~/.tmux.conf
+```
+
+Then start a new tmux pane or window. This restores Kaku's managed `~/.config/kaku/tmux/kaku.tmux.conf`, including the passthrough setting required for failed-command suggestions and `# query` command generation.
+
 ## How do I restore default config?
 
 ```bash

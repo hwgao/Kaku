@@ -1463,6 +1463,7 @@ write_kaku_tmux_file() {
 # This file is managed by Kaku.app. Any changes may be overwritten.
 
 set -g mouse on
+set -g allow-passthrough on
 bind-key -n S-WheelUpPane if-shell -F '#{pane_in_mode}' 'send-keys -X -N 5 scroll-up' 'copy-mode -e -u'
 bind-key -n S-WheelDownPane if-shell -F '#{pane_in_mode}' 'send-keys -X -N 5 scroll-down' ''
 EOF

@@ -721,26 +721,6 @@ local function read_ai_custom_headers(file_key)
   return headers
 end
 
--- Detect if the foreground process is a shell.
--- Returns false for interactive programs like claude, vim, ssh.
-local function is_shell_foreground(pane)
-  if not pane then
-    return false
-  end
-
-  local ok, proc = pcall(function()
-    return pane:get_foreground_process_name()
-  end)
-  if not ok or type(proc) ~= "string" or proc == "" then
-    return false
-  end
-
-  -- Normalize full executable paths (e.g., /bin/zsh) and login shell names (e.g., -zsh).
-  local name = basename(proc:lower()):gsub("^%-", "")
-  local shells = { zsh = true, bash = true, fish = true, sh = true, dash = true, ksh = true, tcsh = true, csh = true }
-  return shells[name] == true
-end
-
 -- Keep cold startup fast: parse assistant.toml lazily only when AI fix is needed.
 local ai_fix_enabled = true
 local ai_fix_api_base_url = "https://api.vivgrid.com/v1"
@@ -2937,6 +2917,9 @@ wezterm.on('user-var-changed', function(window, pane, name, value)
   if name ~= "kaku_last_exit_code" then
     return
   end
+  -- Do not gate on pane:get_foreground_process_name() here.
+  -- In tmux, the outer foreground process is usually "tmux" even when the inner shell
+  -- emitted this SetUserVar event, so process-name checks incorrectly drop valid events.
   if not pane then
     ai_debug_log("user-var-changed ignored no pane")
     return
@@ -3016,13 +2999,6 @@ wezterm.on('user-var-changed', function(window, pane, name, value)
     return
   end
 
-  -- Skip AI fix if foreground process is not a shell.
-  -- This prevents injecting input into interactive programs like claude, vim, ssh.
-  if not is_shell_foreground(pane) then
-    ai_debug_log("user-var-changed skipped non-shell foreground process")
-    return
-  end
-
   pane_state.inflight = true
   pane_state.pending_job_id = nil
   show_ai_loading_toast(window, pane)
@@ -3088,11 +3064,6 @@ wezterm.on('user-var-changed', function(window, pane, name, value)
     pcall(function()
       window:perform_action(wezterm.action.EmitEvent("kaku-toast-ai-missing-key"), pane)
     end)
-    return
-  end
-
-  if not is_shell_foreground(pane) then
-    ai_debug_log("ai_generate skipped non-shell foreground pane_id=" .. pane_id)
     return
   end
 
